@@ -1,0 +1,234 @@
+# Mem0 Server Setup and Usage
+
+## Overview
+
+Mem0 provides multiple server implementations for different use cases:
+
+1. **FastAPI REST Server** - Traditional REST API for programmatic access
+2. **MCP Server** - Model Context Protocol server for AI assistant integration
+3. **OpenMemory** - Local MCP server with UI dashboard
+
+This guide covers the FastAPI and MCP server implementations.
+
+## FastAPI REST Server
+
+The FastAPI server provides a REST API for memory operations, suitable for integration with any programming language or system.
+
+### Prerequisites
+
+- Python 3.8+
+- pip
+- For local deployment: Qdrant vector database running
+- For cloud deployment: Mem0 API key
+
+### Installation
+
+1. Navigate to the server directory:
+   ```bash
+   cd server
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Configuration
+
+Set environment variables for your deployment:
+
+**For Local Deployment:**
+```bash
+export QDRANT_HOST=localhost
+export QDRANT_PORT=6333
+export OPENAI_API_KEY=your_openai_key
+```
+
+**For Cloud Deployment:**
+```bash
+export MEM0_API_KEY=your_mem0_api_key
+```
+
+### Running the Server
+
+```bash
+python main.py
+```
+
+The server starts on http://localhost:8000 with automatic API documentation at http://localhost:8000/docs.
+
+### API Endpoints
+
+#### Add Memory
+```http
+POST /memories
+Content-Type: application/json
+
+{
+  "text": "Important information to remember",
+  "user_id": "user123",
+  "metadata": {"tags": ["important", "work"]}
+}
+```
+
+#### Search Memories
+```http
+GET /memories/search?query=important&user_id=user123&limit=5
+```
+
+#### Get All Memories
+```http
+GET /memories?user_id=user123
+```
+
+#### Delete Memories
+```http
+DELETE /memories?user_id=user123
+```
+
+## MCP Server
+
+The MCP (Model Context Protocol) server provides memory tools for AI assistants.
+
+### Installation
+
+1. Navigate to the MCP directory:
+   ```bash
+   cd mem0-mcp
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Configuration
+
+Same environment variables as FastAPI server.
+
+### Running the Server
+
+```bash
+python main.py --host 0.0.0.0 --port 8080
+```
+
+### Available Tools
+
+- `add_memories(text, tags)` - Store information with optional tags
+- `search_memories(query, limit, tags)` - Search with semantic filtering
+- `get_all_memories()` - Retrieve all stored memories
+- `delete_memories(query, tags, delete_all)` - Selective or bulk deletion
+- `get_memory_stats()` - Analytics and tag distribution
+
+## Using Mem0 from External Projects
+
+### Python Client Integration
+
+```python
+from mem0 import Memory
+
+# Local configuration
+config = {
+    'vector_store': {
+        'provider': 'qdrant',
+        'config': {
+            'host': 'localhost',
+            'port': 6333,
+            'collection_name': 'mem0'
+        }
+    },
+    'llm': {
+        'provider': 'openai',
+        'config': {
+            'model': 'gpt-4o-mini',
+            'api_key': 'your-openai-key'
+        }
+    }
+}
+
+memory = Memory.from_config(config)
+
+# Add memory
+memory.add('This is important information')
+
+# Search
+results = memory.search('important information')
+```
+
+### REST API Integration
+
+```bash
+# Add memory
+curl -X POST http://localhost:8000/memories \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "Important info", "user_id": "user123"}'
+
+# Search memories
+curl 'http://localhost:8000/memories/search?query=important&user_id=user123'
+```
+
+### MCP Integration
+
+Connect AI assistants to the MCP server at http://localhost:8080 for seamless memory access.
+
+## Configuration Options
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MEM0_API_KEY` | Cloud API key | None |
+| `QDRANT_HOST` | Local vector DB host | localhost |
+| `QDRANT_PORT` | Local vector DB port | 6333 |
+| `OPENAI_API_KEY` | OpenAI API key | None |
+| `OLLAMA_HOST` | Ollama server URL | None |
+
+### Server Options
+
+- **Host**: Bind address (default: 0.0.0.0)
+- **Port**: Listen port (default: 8000 for REST, 8080 for MCP)
+- **User Isolation**: Each user has separate memory space
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port already in use**: Change port with --port parameter
+2. **Qdrant connection failed**: Ensure Qdrant is running locally
+3. **API key invalid**: Verify your Mem0 or OpenAI API key
+4. **Memory not persisting**: Check vector store configuration
+
+### Logs
+
+Server logs provide detailed error information. Check console output or log files for debugging.
+
+## Security Considerations
+
+- Use HTTPS in production environments
+- Implement proper authentication for multi-user scenarios
+- Rotate API keys regularly
+- The MCP server includes built-in rate limiting
+- All servers support user-level data isolation
+
+## Performance Tuning
+
+- **Caching**: Built-in memory caching for search operations
+- **Batch Operations**: Use batch_add_memories for multiple items
+- **Connection Pooling**: Automatic connection management
+- **Async Operations**: Non-blocking I/O for better performance
+
+## Migration from Other Systems
+
+If migrating from other memory systems:
+
+1. Export data from existing system
+2. Transform to Mem0 format (text + optional metadata)
+3. Use batch import APIs
+4. Validate data integrity
+5. Update client applications
+
+## Support
+
+- **Documentation**: https://docs.mem0.ai
+- **GitHub Issues**: Report bugs and request features
+- **Discord Community**: Get help from the community
